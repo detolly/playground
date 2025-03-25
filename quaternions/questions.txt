@@ -1,0 +1,39 @@
+After watching tons of videos, I still don't understand quaternions.
+
+Here are some questions:
+
+    * What's so special about the real part of a quaternion?
+        - It feels like physics class where you're using the equations without really understanding what's going on. Stereographic projections did nothing for me.
+
+    * How was it intuitive for Hamilton to perform a quaternion operation, and then perform the inverse afterwards?
+        - After all, he didn't have computers or advanced visualization tools.
+        - Did he not forsee that the inverse would have to be applied, but ran with it anyway?
+
+    * Are there other rules that would make sense for quaternions?
+
+    * What's actually happening in the 4th dimension? Can we visualize a rotation of 4D hyperspheres with quaternions?
+
+    * Why is the formula real * cos(angle) + (imaginary) * sin(angle)? Can we visualize this?
+
+Extra goodies:
+
+    * Can we visualize a pure hypersphere rotation and make it intuitive?
+
+Side notes:
+
+    * Quaternions are pretty much the recipe for the vector cross-product. Nobody really mentions this, not sure why.
+    * 4D can be expressed as a sequence of 3D spaces. It should be able to capture the quaternion operations by treating the final dimension as a temporal dimension.
+        - What does this 3D space represent? My intuition is we're interested in the 3D space on the surface of the 4D unit sphere.
+        - So what would this look like?
+            1. Take all the points on the surface of the hypersphere.
+            2. Multiply them by a quaternion and apply the rules.
+            3. Visualize along a chosen dimension by the 
+            The rules of quaternions:
+                i²+j²+k²=ijk=-1.
+                ij=-ji=k, jk=-kj=i, ki=-ik=j.
+            Let v = 0 + 1i + 0j + 0k. Let q = 0 + 0i + 1j + 0k.
+
+            p = v * q
+            p = 1k
+
+    
