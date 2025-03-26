@@ -3,7 +3,7 @@ from manimlib import * # type: ignore
 import numpy as np
 
 RADIUS = 1.0
-DOT_RADIUS = 0.03
+DOT_RADIUS = 0.02
 
 def quat_mult(q1, q2):
     w1, x1, y1, z1 = q1
@@ -17,28 +17,32 @@ class SphereViz(ThreeDScene):
     def construct(self):
         self.camera.frame.set_euler_angles(phi=45 * DEGREES, theta=0 * DEGREES)
 
-        z = ValueTracker(-RADIUS)
-
-        axes = ThreeDAxes(x_range=(-2,2), y_range=(-2,2), z_range=(-2,2))
-        axes.move_to(LEFT * 3)
-        axes_labels = axes.get_axis_labels()
-
-        sphere = Sphere(radius=RADIUS, resolution=(301, 101))
-        sphere.set_color_by_gradient(RED, BLUE, GREEN, RED)
-        points = sphere.data.copy()
-        sphere.move_to(axes)
-
         def float_key(f): return round(f, 2)
 
-        map = {}
-        for point in points:
-            p = point['point']
-            z_value = float_key(p[2].__float__())
-            if map.get(z_value) is None: map[z_value] = [point]
-            else: map[z_value].append(point)
+        z = ValueTracker(-RADIUS)
+
+        axes_3d, sphere = group_3d = Group([
+            ThreeDAxes(x_range=(-2,2), y_range=(-2,2), z_range=(-2,2)),
+            Sphere(radius=RADIUS, resolution=(500, 500))
+        ])
+
+        axes_labels = axes_3d.get_axis_labels() # type: ignore
+
+        sphere.set_color_by_gradient(RED, BLUE, GREEN, RED)
+        data_points = sphere.data.copy()
+
+        sphere.set_opacity(0.1)
+        group_3d.move_to(LEFT * 3) # type: ignore
+
+        z_map = {}
+        for data_point in data_points:
+            point = data_point['point']
+            z_value = float_key(point[2].__float__()/RADIUS)
+            if z_map.get(z_value) is None: z_map[z_value] = [data_point]
+            else: z_map[z_value].append(data_point)
 
         axes2d = Axes(x_range=(-2,2), y_range=(-2,2))
-        axes2d.move_to(RIGHT * 3)
+        axes2d.move_to(RIGHT * 3) # type: ignore
         axes2d_labels = axes2d.get_axis_labels()
         axes2d_labels.make_smooth()
         axes2d_labels.fix_in_frame()
@@ -57,42 +61,54 @@ class SphereViz(ThreeDScene):
         z_label.move_to(UP * 3) # type: ignore
 
         def compute_data():
-            z_value = float_key(z.get_value().__float__()) # type: ignore
-            if map.get(z_value) is None: 
-                print("fail", z_value)
-                return None
-            sphere_arr = map[z_value]
-            arr = np.zeros(len(map[z_value]), dtype=DotCloud.data_dtype)
-            arr['point'][:] = np.array([[p['point'][0], p['point'][1], np.float64(0.0)] for p in sphere_arr]).reshape((len(sphere_arr),3))
-            arr['rgba'][:] = np.array([p['rgba'] for p in sphere_arr]).reshape((len(sphere_arr),4))
-            arr['radius'][:] = np.array([DOT_RADIUS for _ in range(len(sphere_arr))]).reshape((len(sphere_arr), 1))
+            z_value = float_key(z.get_value().__float__() / RADIUS) # type: ignore
+            if z_map.get(z_value) is None: return None
+
+            sphere_arr = z_map[z_value]
+            arr = np.zeros(len(z_map[z_value]), dtype=DotCloud.data_dtype)
+
+            arr['point'] = [[p['point'][0], p['point'][1], p['point'][2]] for p in sphere_arr]
+            arr['rgba'] = [p['rgba'] for p in sphere_arr]
+            arr['radius'] = np.full((len(sphere_arr), 1), DOT_RADIUS)
             return arr
 
         number.add_updater(lambda n: n.set_value(z.get_value())) # type: ignore
 
-        new_circle = DotCloud()
-        new_circle.fix_in_frame()
-        new_circle.set_color(RED)
-        new_circle.move_to(axes2d)
+        circle_2d = DotCloud()
+        circle_2d.fix_in_frame()
+
+        circle_3d = DotCloud()
 
         def updater(obj: Mobject):
             data = compute_data()
             if data is not None:
                 obj.set_data(data)
-            obj.move_to(axes2d)
+                obj.move_to(axes2d)
+
+        def updater_3d(obj: Mobject):
+            data = compute_data()
+            if data is not None:
+                obj.set_data(data)
+                obj.move_to(axes_3d)
+                obj.shift([0, 0, z.get_value()]) # type: ignore
+
+        self.add(axes_3d, sphere, axes2d, z_label, axes_labels, axes2d_labels, circle_2d, circle_3d)
             
-        self.play(FadeIn(axes),
-                  FadeIn(sphere),
-                  FadeIn(axes2d),
-                  FadeIn(z_label),
-                  FadeIn(axes_labels),
-                  FadeIn(axes2d_labels))
+        # self.play(FadeIn(axes),
+        #           FadeIn(sphere),
+        #           FadeIn(axes2d),
+        #           FadeIn(z_label),
+        #           FadeIn(axes_labels),
+        #           FadeIn(axes2d_labels),
+        #           FadeIn(circle_2d),
+        #           FadeIn(circle_3d))   
 
-        self.play(FadeIn(new_circle))
 
-        new_circle.add_updater(updater)
+        circle_2d.add_updater(updater)
+        circle_3d.add_updater(updater_3d)
         self.play(z.animate.set_value(RADIUS), run_time=10)
-        sphere.remove_updater(updater)
+        circle_2d.remove_updater(updater)
+        circle_3d.remove_updater(updater_3d)
 
 class HypersphereViz(ThreeDScene):
     def construct(self):
@@ -102,7 +118,7 @@ class HypersphereViz(ThreeDScene):
 
         scale = ValueTracker(1)
 
-        sphere = Sphere(radius=1, resolution=RESOLUTION)
+        sphere = Sphere(radius=1, resolution=(101, 51))
         original_point = sphere.data['point'].copy()
 
         def sphere_updater(s: Mobject): s.set_points(original_point * scale.get_value())
