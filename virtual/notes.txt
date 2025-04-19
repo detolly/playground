@@ -1,0 +1,18 @@
+
+Looking in binary ninja we can see that it seems like the objects are layered on top of each other.
+
+The struct therefore looks something like this:
+
+struct A
+{
+    vtable* w1;
+    int x;
+    vtable* w2;
+    int y;
+    int z;
+};
+
+for functions accepting W1/V1 vtable, you pass (A+0).
+for functions accepting W2/V2 vtable, you pass (A+12 (8+4)).
+for functions accepting A, you pass (A+0), since it knows the whole definition.
+
